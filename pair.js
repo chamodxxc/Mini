@@ -472,8 +472,30 @@ function setupCommandHandlers(socket, number) {
                 const parts = buttonId.slice(config.PREFIX.length).trim().split(/\s+/);
                 command = parts[0].toLowerCase();
                 args = parts.slice(1);
+            }  // =====================
+            // SONG BUTTON HANDLER
+            // =====================
+            if (buttonId?.startsWith("song-audio_")) {
+                const [ , url, title ] = buttonId.split("_");
+                await socket.sendMessage(sender, {
+                    audio: { url: decodeURIComponent(url) },
+                    mimetype: 'audio/mpeg',
+                    fileName: `${decodeURIComponent(title)}.mp3`
+                });
+                return;
+            }
+
+            if (buttonId?.startsWith("song-doc_")) {
+                const [ , url, title ] = buttonId.split("_");
+                await socket.sendMessage(sender, {
+                    document: { url: decodeURIComponent(url) },
+                    mimetype: "audio/mpeg",
+                    fileName: `${decodeURIComponent(title)}.mp3`
+                });
+                return;
             }
         }
+
 
         if (!command) return;
 
@@ -792,7 +814,8 @@ case 'ping': {
                 }
 
                 // SONG DOWNLOAD COMMAND WITH BUTTON
-                case 'song': {
+                
+            case 'song': {
     try {
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || '').trim();
         const q = text.split(" ").slice(1).join(" ").trim();
@@ -836,28 +859,16 @@ case 'ping': {
         const footer = config.BOT_FOOTER || '';
         const captionMessage = formatMessage(titleText, content, footer);
 
-        // Song Info Card
+        // Show song info + choice buttons
         await socket.sendMessage(sender, {
             image: { url: cover },
             caption: captionMessage,
             buttons: [
-                { buttonId: `${config.PREFIX}menu`, buttonText: { displayText: '📋 MENU' }, type: 1 },
-                { buttonId: `${config.PREFIX}alive`, buttonText: { displayText: '🤖 BOT INFO' }, type: 1 }
-            ]
-        });
-
-        // Send Audio
-        await socket.sendMessage(sender, {
-            audio: { url: downloadUrl },
-            mimetype: 'audio/mpeg'
-        });
-
-        // Send as Document too
-        await socket.sendMessage(sender, {
-            document: { url: downloadUrl },
-            mimetype: "audio/mpeg",
-            fileName: `${title}.mp3`,
-            caption: captionMessage
+                { buttonId: `song-audio_${encodeURIComponent(downloadUrl)}_${encodeURIComponent(title)}`, buttonText: { displayText: '🎵 Get Audio' }, type: 1 },
+                { buttonId: `song-doc_${encodeURIComponent(downloadUrl)}_${encodeURIComponent(title)}`, buttonText: { displayText: '📂 Get Document' }, type: 1 },
+                { buttonId: `${config.PREFIX}menu`, buttonText: { displayText: '📋 MENU' }, type: 1 }
+            ],
+            footer: footer
         });
 
     } catch (err) {
