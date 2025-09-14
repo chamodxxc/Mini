@@ -829,56 +829,47 @@ case 'ping': {
 
                 // SONG DOWNLOAD COMMAND WITH BUTTON
                 
+            
             case 'song': {
-    try {
-        const q = args.join(" ");
-        if (!q) {
-            await socket.sendMessage(sender, { 
-                text: '*🚫 Please enter a song name to search.*',
-                buttons: [
-                    { buttonId: `${config.PREFIX}menu`, buttonText: { displayText: '📋 MENU' }, type: 1 }
-                ]
-            }, { quoted: msg });
-            return;
-        }
+    console.log("SONG COMMAND TRIGGERED ✅");
+    console.log("ARGS:", args);
 
-        // Search video
+    const q = args.join(" ");
+    console.log("QUERY:", q);
+
+    if (!q) {
+        await socket.sendMessage(sender, { 
+            text: '*🚫 Please enter a song name to search.*' 
+        }, { quoted: msg });
+        return;
+    }
+
+    try {
         const searchResults = await yts(q);
+        console.log("SEARCH RESULTS:", searchResults.videos.length);
+
         if (!searchResults.videos.length) {
-            await socket.sendMessage(sender, { 
-                text: '*🚩 Result Not Found*',
-                buttons: [
-                    { buttonId: `${config.PREFIX}menu`, buttonText: { displayText: '📋 MENU' }, type: 1 }
-                ]
-            }, { quoted: msg });
+            await socket.sendMessage(sender, { text: "🚩 No results found." }, { quoted: msg });
             return;
         }
 
         const video = searchResults.videos[0];
+        console.log("VIDEO FOUND:", video.title);
 
-        // Fetch song from Nekolabs API
         const apiUrl = `https://api.nekolabs.my.id/downloader/youtube/play/v1?q=${encodeURIComponent(video.title)}`;
         const response = await fetch(apiUrl);
         const data = await response.json();
+        console.log("API RESPONSE:", data);
 
         if (!data.status || !data.result?.downloadUrl) {
-            await socket.sendMessage(sender, { 
-                text: '*🚩 Download Error. Please try again later.*',
-                buttons: [
-                    { buttonId: `${config.PREFIX}menu`, buttonText: { displayText: '📋 MENU' }, type: 1 }
-                ]
-            }, { quoted: msg });
+            await socket.sendMessage(sender, { text: "🚩 Download error." }, { quoted: msg });
             return;
         }
 
         const { title, channel, duration, cover, url } = data.result.metadata;
         const download = data.result.downloadUrl;
 
-        const caption = `*༊ WHITESHADOW-MINI SONG DOWNLOADER*\n\n` +
-            `📝 *Title:* ${title}\n` +
-            `📺 *Channel:* ${channel}\n` +
-            `🕛 *Duration:* ${duration}\n` +
-            `🔗 *URL:* ${url}`;
+        const caption = `*Song Downloader*\n\n📝 Title: ${title}\n📺 Channel: ${channel}\n🕛 Duration: ${duration}\n🔗 URL: ${url}`;
 
         await socket.sendMessage(sender, {
             image: { url: cover },
@@ -890,13 +881,11 @@ case 'ping': {
         }, { quoted: msg });
 
     } catch (err) {
-        console.error(err);
-        await socket.sendMessage(sender, { 
-            text: '*❌ Internal Error. Please try again later.*'
-        }, { quoted: msg });
+        console.error("SONG ERROR:", err);
+        await socket.sendMessage(sender, { text: "❌ Internal Error. Please try again later." }, { quoted: msg });
     }
     break;
-}
+			}
                 
                 // NEWS COMMAND
                 case 'news': {
