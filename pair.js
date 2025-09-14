@@ -756,68 +756,7 @@ case 'ping': {
 
     break;
 		  }
-					case 'fb': {
-    const axios = require('axios');
-    const q = msg.message?.conversation || 
-              msg.message?.extendedTextMessage?.text || 
-              msg.message?.imageMessage?.caption || 
-              msg.message?.videoMessage?.caption || 
-              '';
-
-    const fbUrl = q?.trim();
-
-    if (!/facebook\.com|fb\.watch/.test(fbUrl)) {
-        return await socket.sendMessage(sender, { text: '🧩 *Please provide a valid Facebook video link.*' });
-    }
-
-    try {
-        const res = await axios.get(`https://api.nekolabs.my.id/downloader/facebook?url=${encodeURIComponent(fbUrl)}`);
-        const medias = res.data.result?.medias || [];
-
-        if (!medias.length) {
-            return await socket.sendMessage(sender, { text: '*❌ No video found.*' });
-        }
-
-        // Save download links
-        const hd = medias.find(m => m.quality === "HD");
-        const sd = medias.find(m => m.quality === "SD");
-
-        // Send button reply
-        await socket.sendMessage(sender, {
-            text: `🎥 ${res.data.result.title || 'Facebook Video'}\n\n📽 Select video quality:`,
-            footer: "> 𝐏𝙾𝚆𝙴𝚁𝙳 𝐁𝚈 BLOODMOON-𝐌𝙳",
-            buttons: [
-                hd ? { buttonId: `fb_dl ${hd.url}`, buttonText: { displayText: "HD 🎬" }, type: 1 } : null,
-                sd ? { buttonId: `fb_dl ${sd.url}`, buttonText: { displayText: "SD 📺" }, type: 1 } : null
-            ].filter(Boolean),
-            headerType: 1
-        }, { quoted: msg });
-
-    } catch (e) {
-        console.log(e);
-        await socket.sendMessage(sender, { text: '*❌ Error downloading video.*' });
-    }
-
-    break;
-}
-
-// Handle button press
-case 'fb_dl': {
-    const videoUrl = args[0]; // buttonId = "fb_dl <url>"
-    if (!videoUrl) return;
-
-    await socket.sendMessage(sender, { react: { text: '⬇', key: msg.key } });
-
-    await socket.sendMessage(sender, {
-        video: { url: videoUrl },
-        mimetype: 'video/mp4',
-        caption: "> 𝐏𝙾𝚆𝙴𝚁𝙳 𝐁𝚈 WHITESHADOW-𝐌𝙳"
-    }, { quoted: msg });
-
-    await socket.sendMessage(sender, { react: { text: '✔', key: msg.key } });
-
-    break;
-}
+					
                 // SYSTEM COMMAND
                 case 'system': {
                     const startTime = socketCreationTime.get(number) || Date.now();
