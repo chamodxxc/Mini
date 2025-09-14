@@ -21,10 +21,10 @@
     }
   },
   "addons": [
-    "heroku-postgresql:hobby-dev"
+    "heroku-postgresql:mini"
   ],
   "scripts": {
-    "postdeploy": "npm run migrate"
+    "postdeploy": "npm install"
   },
   "success_url": "/"
 }
