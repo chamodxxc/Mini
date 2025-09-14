@@ -1,15 +1,19 @@
 {
-  "name": "WHITESHADOW-MD",
-  "description": "WhatsApp Bot with Multi-Number Support - Auto Pairing",
-  "repository": "https://github.com/chamodxxc/Cnw",
-  "logo": "https://raw.githubusercontent.com/chamodxxc/Cnw/main/logo.png",
-  "keywords": ["whatsapp", "bot", "multi-device", "baileys", "CNW-md"],
+  "name": "Mini WhatsApp Bot",
+  "description": "A Mini WhatsApp Bot with auto connect after pairing. Deploy on Heroku and use instantly!",
+  "repository": "https://github.com/chamodxxc/Mini",
+  "logo": "https://files.catbox.moe/fyr37r.jpg",
+  "keywords": ["whatsapp", "bot", "baileys", "md", "mini", "heroku"],
   "buildpacks": [
     {
       "url": "heroku/nodejs"
     }
   ],
-  "scripts": {
-    "postdeploy": "npm install && npm run start"
-  }
+  "formation": {
+    "worker": {
+      "quantity": 1,
+      "size": "free"
+    }
+  },
+  "stack": "heroku-22"
 }
