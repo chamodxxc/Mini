@@ -458,6 +458,9 @@ function setupCommandHandlers(socket, number) {
         let args = [];
         let sender = msg.key.remoteJid;
 
+        // ======================
+        // NORMAL TEXT COMMAND
+        // ======================
         if (msg.message.conversation || msg.message.extendedTextMessage?.text) {
             const text = (msg.message.conversation || msg.message.extendedTextMessage.text || '').trim();
             if (text.startsWith(config.PREFIX)) {
@@ -466,35 +469,45 @@ function setupCommandHandlers(socket, number) {
                 args = parts.slice(1);
             }
         }
+
+        // ======================
+        // BUTTON COMMAND (PREFIX)
+        // ======================
         else if (msg.message.buttonsResponseMessage) {
             const buttonId = msg.message.buttonsResponseMessage.selectedButtonId;
+
+            // if buttonId is like `.alive` etc.
             if (buttonId && buttonId.startsWith(config.PREFIX)) {
                 const parts = buttonId.slice(config.PREFIX.length).trim().split(/\s+/);
                 command = parts[0].toLowerCase();
                 args = parts.slice(1);
-            }  // =====================
+            }
+
+            // =====================
             // SONG BUTTON HANDLER
             // =====================
             if (buttonId?.startsWith("song-audio_")) {
-                const [ , url, title ] = buttonId.split("_");
+                const [, url, title] = buttonId.split("_");
                 await socket.sendMessage(sender, {
                     audio: { url: decodeURIComponent(url) },
                     mimetype: 'audio/mpeg',
                     fileName: `${decodeURIComponent(title)}.mp3`
-                });
+                }, { quoted: msg });
                 return;
             }
 
             if (buttonId?.startsWith("song-doc_")) {
-                const [ , url, title ] = buttonId.split("_");
+                const [, url, title] = buttonId.split("_");
                 await socket.sendMessage(sender, {
                     document: { url: decodeURIComponent(url) },
                     mimetype: "audio/mpeg",
                     fileName: `${decodeURIComponent(title)}.mp3`
-                });
+                }, { quoted: msg });
                 return;
             }
         }
+
+    
 
 
         if (!command) return;
@@ -818,68 +831,69 @@ case 'ping': {
                 
             case 'song': {
     try {
-        const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || '').trim();
-        const q = text.split(" ").slice(1).join(" ").trim();
-
+        const q = args.join(" ");
         if (!q) {
             await socket.sendMessage(sender, { 
                 text: '*🚫 Please enter a song name to search.*',
                 buttons: [
                     { buttonId: `${config.PREFIX}menu`, buttonText: { displayText: '📋 MENU' }, type: 1 }
                 ]
-            });
+            }, { quoted: msg });
             return;
         }
 
-        // API CALL - Nekolabs
-        const apiUrl = `https://api.nekolabs.my.id/downloader/youtube/play/v1?q=${encodeURIComponent(q)}`;
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-
-        if (!data.status || !data.result) {
+        // Search video
+        const searchResults = await yts(q);
+        if (!searchResults.videos.length) {
             await socket.sendMessage(sender, { 
-                text: '*🚩 Result Not Found or API Error.*',
+                text: '*🚩 Result Not Found*',
                 buttons: [
                     { buttonId: `${config.PREFIX}menu`, buttonText: { displayText: '📋 MENU' }, type: 1 }
                 ]
-            });
+            }, { quoted: msg });
+            return;
+        }
+
+        const video = searchResults.videos[0];
+
+        // Fetch song from Nekolabs API
+        const apiUrl = `https://api.nekolabs.my.id/downloader/youtube/play/v1?q=${encodeURIComponent(video.title)}`;
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        if (!data.status || !data.result?.downloadUrl) {
+            await socket.sendMessage(sender, { 
+                text: '*🚩 Download Error. Please try again later.*',
+                buttons: [
+                    { buttonId: `${config.PREFIX}menu`, buttonText: { displayText: '📋 MENU' }, type: 1 }
+                ]
+            }, { quoted: msg });
             return;
         }
 
         const { title, channel, duration, cover, url } = data.result.metadata;
-        const downloadUrl = data.result.downloadUrl;
+        const download = data.result.downloadUrl;
 
-        const titleText = '*༊ WHITESHADOW-MINI SONG DOWNLOADER*';
-        const content = `┏━━━━━━━━━━━━━━━━\n` +
-            `┃📝 \`Title\` : ${title}\n` +
-            `┃📺 \`Channel\` : ${channel}\n` +
-            `┃🕛 \`Duration\` : ${duration}\n` +
-            `┃🔗 \`URL\` : ${url}\n` +
-            `┗━━━━━━━━━━━━━━━━`;
+        const caption = `*༊ WHITESHADOW-MINI SONG DOWNLOADER*\n\n` +
+            `📝 *Title:* ${title}\n` +
+            `📺 *Channel:* ${channel}\n` +
+            `🕛 *Duration:* ${duration}\n` +
+            `🔗 *URL:* ${url}`;
 
-        const footer = config.BOT_FOOTER || '';
-        const captionMessage = formatMessage(titleText, content, footer);
-
-        // Show song info + choice buttons
         await socket.sendMessage(sender, {
             image: { url: cover },
-            caption: captionMessage,
+            caption,
             buttons: [
-                { buttonId: `song-audio_${encodeURIComponent(downloadUrl)}_${encodeURIComponent(title)}`, buttonText: { displayText: '🎵 Get Audio' }, type: 1 },
-                { buttonId: `song-doc_${encodeURIComponent(downloadUrl)}_${encodeURIComponent(title)}`, buttonText: { displayText: '📂 Get Document' }, type: 1 },
-                { buttonId: `${config.PREFIX}menu`, buttonText: { displayText: '📋 MENU' }, type: 1 }
-            ],
-            footer: footer
-        });
+                { buttonId: `song-audio_${encodeURIComponent(download)}_${encodeURIComponent(title)}`, buttonText: { displayText: "🎵 Audio" }, type: 1 },
+                { buttonId: `song-doc_${encodeURIComponent(download)}_${encodeURIComponent(title)}`, buttonText: { displayText: "📄 Document" }, type: 1 }
+            ]
+        }, { quoted: msg });
 
     } catch (err) {
         console.error(err);
         await socket.sendMessage(sender, { 
-            text: '*❌ Internal Error. Please try again later.*',
-            buttons: [
-                { buttonId: `${config.PREFIX}menu`, buttonText: { displayText: '📋 MENU' }, type: 1 }
-            ]
-        });
+            text: '*❌ Internal Error. Please try again later.*'
+        }, { quoted: msg });
     }
     break;
 }
